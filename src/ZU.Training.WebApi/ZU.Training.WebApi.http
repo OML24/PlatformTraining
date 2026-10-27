@@ -1,0 +1,6 @@
+@ZU.Training.WebApi_HostAddress = http://localhost:5189
+
+GET {{ZU.Training.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

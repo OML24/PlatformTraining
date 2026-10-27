@@ -1,0 +1,65 @@
+:root { --navy: #022c5a; --line: #dae4ef; --muted: #64748b; }
+body { min-height: 100vh; background: #f7f9fc; color: var(--navy); font-family: Tahoma, Arial, sans-serif; }
+.site-header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 0; }
+.brand strong, .brand span { display: block; }
+.brand strong { font-size: 1.05rem; }
+.brand span { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+.btn-primary { --bs-btn-bg: var(--navy); --bs-btn-border-color: var(--navy); --bs-btn-hover-bg: #06467e; --bs-btn-hover-border-color: #06467e; }
+.btn-outline-primary { --bs-btn-color: var(--navy); --bs-btn-border-color: var(--navy); --bs-btn-hover-bg: var(--navy); --bs-btn-hover-border-color: var(--navy); }
+.page-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); gap: min(8vw, 110px); align-items: center; min-height: calc(100vh - 82px); padding-block: 70px; }
+.eyebrow { display: inline-block; padding: 7px 13px; border: 1px solid #cbdff2; background: #eaf3fc; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+.intro h1 { font-size: clamp(2rem, 4vw, 3.4rem); font-weight: 800; line-height: 1.4; margin: 22px 0 16px; }
+.intro p { color: var(--muted); font-size: 1.15rem; line-height: 2; max-width: 36rem; }
+.intro-points { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.intro-points span { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .9rem; }
+.auth-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: clamp(26px, 4vw, 44px); box-shadow: 0 18px 55px rgba(2,44,90,.07); }
+.auth-card h2 { font-weight: 800; font-size: 1.7rem; margin-bottom: 10px; }
+.muted { color: var(--muted); line-height: 1.8; }
+.form-label { font-weight: 700; margin-bottom: 8px; }
+.form-control { padding: 13px 14px; border-color: var(--line); border-radius: 10px; color: var(--navy); }
+.form-control:focus { border-color: #6aa3d3; box-shadow: 0 0 0 .2rem rgba(2,44,90,.1); }
+.action-button { padding: 13px; font-weight: 700; border-radius: 10px; }
+.success-mark { display: grid; place-items: center; background: #e4f6ef; color: #087957; width: 54px; height: 54px; border-radius: 50%; font-size: 1.6rem; margin-bottom: 20px; }
+.account-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 0; }
+@media (max-width: 900px) { .page-shell { grid-template-columns: 1fr; gap: 32px; padding-block: 40px; } .intro h1 { margin-top: 16px; } }
+.page-shell.dashboard-mode { display: block; min-height: calc(100vh - 82px); padding-block: 40px 80px; }
+.dashboard-view { width: 100%; }
+.dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.dashboard-header h2 { font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 800; }
+.workspace-tabs .nav-link { border: 1px solid var(--line); background: #fff; color: var(--navy); font-weight: 700; }
+.workspace-tabs .nav-link.active { background: var(--navy); border-color: var(--navy); }
+.workspace-panel { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: clamp(22px, 3vw, 36px); box-shadow: 0 12px 35px rgba(2,44,90,.045); }
+.panel-heading { margin-bottom: 26px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.panel-heading h3 { font-size: 1.35rem; font-weight: 800; }
+.panel-heading p { color: var(--muted); margin-bottom: 0; }
+.workspace-panel .form-control { padding: 10px 12px; }
+.workspace-panel td { vertical-align: middle; }
+.field-hint { display: block; color: #236090; padding-top: 5px; font-size: .84rem; }
+.course-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr)); gap: 16px; }
+.course-card, .lecture-card { border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: #fff; }
+.course-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.course-card h4 { font-size: 1.05rem; font-weight: 800; line-height: 1.6; margin: 0; }
+.lecture-card { margin-bottom: 14px; background: #fbfdff; }
+.lecture-card h5 { font-size: 1rem; font-weight: 800; margin: 0; }
+.section-title { font-size: 1.2rem; font-weight: 800; border-top: 1px solid var(--line); padding-top: 24px; margin: 26px 0 16px; }
+.course-objectives { line-height: 1.9; white-space: pre-wrap; }
+.person-name { min-width: 180px; }
+.exam-outcome { max-width: 220px; }
+.approval-box { border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: #f7fafc; max-width: 530px; }
+@media (max-width: 640px) { .person-name { min-width: 0; } .course-card-head { display: block; } }
+.subpanel { border-top: 1px solid var(--line); padding-top: 28px; }
+.subpanel h4 { font-size: 1.2rem; font-weight: 800; margin-bottom: 18px; }
+.subpanel h5 { font-size: 1rem; font-weight: 800; }
+.search-input { max-width: 350px; }
+.role-select { max-width: 350px; }
+.role-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.role-checks .form-check { margin: 0; padding: 8px 10px 8px 28px; border: 1px solid var(--line); border-radius: 8px; }
+[dir="rtl"] .role-checks .form-check { padding: 8px 28px 8px 10px; }
+#credential-result, #shared-result { white-space: pre-wrap; overflow-wrap: anywhere; }
+.request-card { border: 1px solid var(--line); background: #fbfdff; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+.request-card h4 { font-size: 1.1rem; font-weight: 800; }
+.request-card p { white-space: pre-wrap; line-height: 1.8; }
+.detail-section { border-top: 1px solid var(--line); padding-top: 20px; }
+.evaluation-question { padding: 24px; }
+.evaluation-option .form-control { width: 100%; }
+.evaluation-question .section-title { border: 0; padding: 0; margin: 0; }
