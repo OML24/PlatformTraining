@@ -96,6 +96,11 @@ public sealed class AdminUsersController(UserAdminService service) : ControllerB
     public Task<IActionResult> SetSharedInitialPassword([FromBody] PasswordChangeRequest request, CancellationToken ct)
         => Execute(async () => { await service.SetSharedInitialPasswordAsync(ActorId(), request.Password, Ip(), ct); return new { saved = true }; });
 
+    [HttpPost("users/dispatch-initial-emails")]
+    [Authorize(Policy = PermissionKeys.ManageUsers)]
+    public Task<IActionResult> DispatchInitialEmails(CancellationToken ct)
+        => Execute(async () => new { dispatched = await service.DispatchInitialEmailsAsync(ActorId(), Ip(), ct) });
+
     private Guid ActorId() => Guid.TryParse(User.FindFirstValue("sub"), out var id)
         ? id : throw new UnauthorizedAccessException();
     private string? Ip() => HttpContext.Connection.RemoteIpAddress?.ToString();

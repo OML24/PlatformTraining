@@ -31,6 +31,7 @@ public interface IUserAdminStore
     Task<Permission?> PermissionAsync(string key, CancellationToken cancellationToken);
     Task<PasswordPolicy?> CurrentPolicyAsync(CancellationToken cancellationToken);
     Task<SharedInitialPassword?> SharedPasswordAsync(CancellationToken cancellationToken);
+    Task<int> DispatchPendingInitialEmailsAsync(DateTimeOffset now, CancellationToken cancellationToken);
     void AddUser(UserAccount user);
     void AddUserRole(UserRole role);
     void AddRolePermission(RolePermission value);

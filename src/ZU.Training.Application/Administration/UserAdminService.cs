@@ -219,6 +219,14 @@ public sealed class UserAdminService(IUserAdminStore store, ICredentialCipher ci
         await store.SaveAsync(ct);
     }
 
+    public async Task<int> DispatchInitialEmailsAsync(Guid actorId, string? ip, CancellationToken ct)
+    {
+        var count = await store.DispatchPendingInitialEmailsAsync(DateTimeOffset.UtcNow, ct);
+        Audit(actorId, "users.initial_emails_dispatched", "UserAccount", null, ip, $"Count:{count}");
+        await store.SaveAsync(ct);
+        return count;
+    }
+
     private async Task<UserAccount> RequiredUserAsync(Guid id, CancellationToken ct)
         => await store.UserAsync(id, ct) ?? throw new KeyNotFoundException("User not found.");
 

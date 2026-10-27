@@ -4,8 +4,12 @@ using ZU.Training.Domain.Training;
 
 namespace ZU.Training.Application.Training;
 
-public sealed class ImpactService(IImpactStore store, IOfficialDocumentStorage storage,
-    IAuthStore auth, IPermissionAccess permissions)
+public sealed class ImpactService(
+    IImpactStore store,
+    IOfficialDocumentStorage storage,
+    IAuthStore auth,
+    IPermissionAccess permissions,
+    CertificateService? certificateService = null)
 {
     public async Task<IReadOnlyList<ImpactSummary>> MineAsync(Guid userId, Guid courseId, CancellationToken ct)
     {
@@ -75,6 +79,8 @@ public sealed class ImpactService(IImpactStore store, IOfficialDocumentStorage s
         submission.ReviewedByUserId = actorId;
         submission.ReviewedAtUtc = DateTimeOffset.UtcNow;
         await store.SaveAsync(ct);
+        if (certificateService is not null)
+            await certificateService.IssueOrReevaluateCertificateAsync(enrollment.CourseId, enrollment.Id, "https://portal.zu.edu.jo", ct);
         return submission;
     }
 

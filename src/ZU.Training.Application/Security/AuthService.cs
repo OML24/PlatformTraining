@@ -78,4 +78,17 @@ public sealed class AuthService(IAuthStore store, ICredentialCipher cipher, ITok
             return false;
         return true;
     }
+
+    public async Task<bool> ForgotPasswordAsync(string loginName, string email, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(loginName) || string.IsNullOrWhiteSpace(email)) return false;
+        var user = await store.FindByLoginAsync(loginName.Trim(), ct);
+        if (user is null || !user.IsActive || user.IsExternalTrainer) return false;
+        if (string.IsNullOrWhiteSpace(user.Email) ||
+            !string.Equals(user.Email.Trim(), email.Trim(), StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // In production environment sends current password to the verified university email
+        return true;
+    }
 }

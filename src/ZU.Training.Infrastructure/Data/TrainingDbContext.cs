@@ -9,6 +9,7 @@ namespace ZU.Training.Infrastructure.Data;
 public sealed class TrainingDbContext(DbContextOptions<TrainingDbContext> options) : DbContext(options)
 {
     public DbSet<Faculty> Faculties => Set<Faculty>();
+    public DbSet<UniversityCenter> UniversityCenters => Set<UniversityCenter>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
     public DbSet<SharedInitialPassword> SharedInitialPasswords => Set<SharedInitialPassword>();
@@ -58,15 +59,27 @@ public sealed class TrainingDbContext(DbContextOptions<TrainingDbContext> option
             b.Property(x => x.NameAr).HasMaxLength(300);
             b.Property(x => x.NameEn).HasMaxLength(300);
         });
+        modelBuilder.Entity<UniversityCenter>(b =>
+        {
+            b.ToTable("university_centers");
+            b.HasIndex(x => x.ExternalCode).IsUnique();
+            b.Property(x => x.ExternalCode).HasMaxLength(20);
+            b.Property(x => x.NameAr).HasMaxLength(300);
+            b.Property(x => x.NameEn).HasMaxLength(300);
+            b.HasOne<Faculty>().WithMany().HasForeignKey(x => x.FacultyId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Department>(b =>
         {
             b.ToTable("departments");
             b.HasIndex(x => x.ExternalCode).IsUnique();
             b.Property(x => x.ExternalCode).HasMaxLength(20);
             b.Property(x => x.FacultyExternalCode).HasMaxLength(20);
+            b.Property(x => x.CenterExternalCode).HasMaxLength(20);
+            b.Property(x => x.RegCode).HasMaxLength(20);
             b.Property(x => x.NameAr).HasMaxLength(300);
             b.Property(x => x.NameEn).HasMaxLength(300);
             b.HasOne<Faculty>().WithMany().HasForeignKey(x => x.FacultyId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<UniversityCenter>().WithMany().HasForeignKey(x => x.CenterId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<UserAccount>(b =>
         {
@@ -77,6 +90,9 @@ public sealed class TrainingDbContext(DbContextOptions<TrainingDbContext> option
             b.Property(x => x.NameAr).HasMaxLength(300);
             b.Property(x => x.NameEn).HasMaxLength(300);
             b.Property(x => x.Email).HasMaxLength(320);
+            b.Property(x => x.Mobile).HasMaxLength(50);
+            b.Property(x => x.PhoneExtension).HasMaxLength(50);
+            b.Property(x => x.JobTitle).HasMaxLength(200);
             b.Property(x => x.PreferredLanguage).HasMaxLength(2);
             b.HasOne<Faculty>().WithMany().HasForeignKey(x => x.FacultyId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);

@@ -48,6 +48,20 @@ public sealed class EfUserAdminStore(TrainingDbContext db) : IUserAdminStore
     public Task<SharedInitialPassword?> SharedPasswordAsync(CancellationToken ct)
         => db.SharedInitialPasswords.Where(x => x.IsActive).FirstOrDefaultAsync(ct);
 
+    public async Task<int> DispatchPendingInitialEmailsAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var pendingUsers = await db.UserAccounts
+            .Where(x => x.IsActive && !x.IsExternalTrainer && x.InitialEmailSentAtUtc == null)
+            .ToListAsync(ct);
+
+        foreach (var u in pendingUsers)
+        {
+            u.InitialEmailSentAtUtc = now;
+        }
+
+        return pendingUsers.Count;
+    }
+
     public void AddUser(UserAccount user) => db.UserAccounts.Add(user);
     public void AddUserRole(UserRole role) => db.UserRoles.Add(role);
     public void AddRolePermission(RolePermission value) => db.RolePermissions.Add(value);

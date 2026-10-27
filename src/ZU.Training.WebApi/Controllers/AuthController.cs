@@ -77,10 +77,30 @@ public sealed class AuthController(AuthService authService, IAuthStore store, IP
     }
 
     [HttpPost("logout")]
-    [Authorize]
+    [AllowAnonymous]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete(JwtTokenIssuer.CookieName, new CookieOptions { Path = "/api" });
+        var isDev = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+        var deleteOptionsApi = new CookieOptions
+        {
+            Path = "/api",
+            SameSite = SameSiteMode.Lax,
+            Secure = !isDev,
+            HttpOnly = true,
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+        Response.Cookies.Delete(JwtTokenIssuer.CookieName, deleteOptionsApi);
+
+        var deleteOptionsRoot = new CookieOptions
+        {
+            Path = "/",
+            SameSite = SameSiteMode.Lax,
+            Secure = !isDev,
+            HttpOnly = true,
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+        Response.Cookies.Delete(JwtTokenIssuer.CookieName, deleteOptionsRoot);
+
         return NoContent();
     }
 
@@ -99,6 +119,18 @@ public sealed class AuthController(AuthService authService, IAuthStore store, IP
         return Ok(new { account.PreferredLanguage });
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var ok = await authService.ForgotPasswordAsync(request.LoginName, request.Email, cancellationToken);
+        if (!ok)
+            return BadRequest(new { message = "الرقم الوظيفي أو البريد الإلكتروني غير متطابقين." });
+
+        return Ok(new { message = "تم إرسال كلمة المرور إلى بريدك الإلكتروني الجامعي المسجل بنجاح." });
+    }
+
     private void WriteCookie(IssuedToken token)
     {
         Response.Cookies.Append(JwtTokenIssuer.CookieName, token.Value, new CookieOptions
@@ -115,3 +147,4 @@ public sealed class AuthController(AuthService authService, IAuthStore store, IP
 public sealed record LoginRequest(string LoginName, string Password, bool RememberMe);
 public sealed record ChangePasswordRequest(string OldPassword, string NewPassword, bool RememberMe);
 public sealed record LanguageRequest(string Language);
+public sealed record ForgotPasswordRequest(string LoginName, string Email);

@@ -59,6 +59,7 @@ builder.Services.AddSingleton(new UniversityDirectoryEndpoints(
     builder.Configuration["University:Employees"] ?? throw new InvalidOperationException("University employee URL missing."),
     builder.Configuration["University:Departments"] ?? throw new InvalidOperationException("University department URL missing."),
     builder.Configuration["University:Faculties"] ?? throw new InvalidOperationException("University faculty URL missing."),
+    builder.Configuration["University:Centers"] ?? "https://eservices.zu.edu.jo/ords/fees/qa/centers",
     builder.Configuration["University:Emails"] ?? "https://eservices.zu.edu.jo/ords/fees/qa/email"));
 builder.Services.AddHttpClient<IUniversitySyncService, UniversitySyncService>(client =>
     client.Timeout = TimeSpan.FromMinutes(5));
@@ -146,6 +147,19 @@ if (args.Contains("--bootstrap-admin", StringComparer.OrdinalIgnoreCase))
     if (!app.Environment.IsDevelopment())
         throw new InvalidOperationException("Admin bootstrap is available only in Development.");
     await ZU.Training.WebApi.Bootstrap.DevelopmentAdminBootstrap.RunAsync(app.Services, args);
+    return;
+}
+
+if (args.Contains("--sync-university", StringComparer.OrdinalIgnoreCase))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var syncService = scope.ServiceProvider.GetRequiredService<IUniversitySyncService>();
+    var db = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+    var admin = await db.UserAccounts.FirstOrDefaultAsync(x => x.LoginName == "admin" || x.LoginName == "8303");
+    var actorId = admin?.Id ?? Guid.NewGuid();
+    Console.WriteLine("Starting university sync from official Zarqa University endpoints...");
+    var result = await syncService.RefreshAsync(actorId, "127.0.0.1", CancellationToken.None);
+    Console.WriteLine($"Sync result: Added={result.Added}, Updated={result.Updated}, Missing={result.Missing}, Complete={result.Complete}, Error={result.Error}");
     return;
 }
 

@@ -9,13 +9,29 @@ public sealed class Faculty : Entity
     public string? NameEn { get; set; }
 }
 
+public sealed class UniversityCenter : Entity
+{
+    public required string ExternalCode { get; set; }
+    public required string NameAr { get; set; }
+    public string? NameEn { get; set; }
+    public int? HeadEmployeeId { get; set; }
+    public int? RegistrarEmployeeId { get; set; }
+    public int? UnitId { get; set; }
+    public int? SideCode { get; set; }
+    public Guid? FacultyId { get; set; }
+}
+
 public sealed class Department : Entity
 {
     public required string ExternalCode { get; set; }
     public required string FacultyExternalCode { get; set; }
     public Guid? FacultyId { get; set; }
+    public string? CenterExternalCode { get; set; }
+    public Guid? CenterId { get; set; }
     public required string NameAr { get; set; }
     public string? NameEn { get; set; }
+    public int? HeadEmployeeId { get; set; }
+    public string? RegCode { get; set; }
 }
 
 public sealed class UserAccount : Entity
@@ -25,6 +41,9 @@ public sealed class UserAccount : Entity
     public required string NameAr { get; set; }
     public string? NameEn { get; set; }
     public string? Email { get; set; }
+    public string? Mobile { get; set; }
+    public string? PhoneExtension { get; set; }
+    public string? JobTitle { get; set; }
     public bool IsExternalTrainer { get; set; }
     public bool FirstLoginCompleted { get; set; }
     public string? EncryptedInitialPassword { get; set; }

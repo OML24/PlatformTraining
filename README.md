@@ -1,6 +1,6 @@
 # منصة التدريب والتطوير المهني — جامعة الزرقاء
 
-مشروع .NET 10 وفق Clean Architecture مع PostgreSQL وEF Core. WebPortal ملفات ثابتة بـBootstrap 5 وjQuery/AJAX، بلا Razor. مصدر المتطلبات في [PLATFORM_SPECIFICATION.md](../PLATFORM_SPECIFICATION.md)، وحالة التنفيذ الدقيقة في [WORK_PROGRESS.md](WORK_PROGRESS.md).
+مشروع .NET 9 وفق Clean Architecture مع PostgreSQL وEF Core. WebPortal ملفات ثابتة بـBootstrap 5 وjQuery/AJAX، بلا Razor. مصدر المتطلبات في [PLATFORM_SPECIFICATION.md](PLATFORM_SPECIFICATION.md)، وحالة التنفيذ الدقيقة في [WORK_PROGRESS.md](WORK_PROGRESS.md).
 
 ## المشروعات
 
@@ -15,7 +15,7 @@
 
 ## التشغيل المحلي
 
-يتطلب .NET 10 وPostgreSQL. احفظ `ConnectionStrings:TrainingDb` و`Security:EncryptionKey` و`Security:JwtSigningKey` خارج المستودع في User Secrets لمشروع WebApi. لا تنسخ أسرار التطوير إلى إعدادات الإنتاج.
+يتطلب .NET 9 وPostgreSQL. احفظ `ConnectionStrings:TrainingDb` و`Security:EncryptionKey` و`Security:JwtSigningKey` خارج المستودع في User Secrets لمشروع WebApi. لا تنسخ أسرار التطوير إلى إعدادات الإنتاج.
 
 ```powershell
 dotnet restore ZU.Training.sln

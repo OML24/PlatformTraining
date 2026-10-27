@@ -5,7 +5,11 @@ using ZU.Training.Domain.Training;
 
 namespace ZU.Training.Application.Training;
 
-public sealed class CourseWorkflowService(ICourseStore store, IAuthStore auth, IPermissionAccess permissions)
+public sealed class CourseWorkflowService(
+    ICourseStore store,
+    IAuthStore auth,
+    IPermissionAccess permissions,
+    CertificateService? certificateService = null)
 {
     private sealed record Actor(UserAccount Account, HashSet<string> Roles)
     {
@@ -411,7 +415,10 @@ public sealed class CourseWorkflowService(ICourseStore store, IAuthStore auth, I
         var enrollment = await store.EnrollmentByIdAsync(enrollmentId, ct);
         if (enrollment?.IsActive != true || enrollment.CourseId != course.Id)
             throw new ArgumentException("Enrollment is not in this course.");
-        return await SaveAttendanceAsync(lecture, enrollment, present, true, userId, ct);
+        var record = await SaveAttendanceAsync(lecture, enrollment, present, true, userId, ct);
+        if (certificateService is not null)
+            await certificateService.IssueOrReevaluateCertificateAsync(lecture.CourseId, enrollmentId, "https://portal.zu.edu.jo", ct);
+        return record;
     }
 
     public async Task<Course> EndAsync(Guid userId, Guid courseId, CancellationToken ct)
@@ -424,7 +431,10 @@ public sealed class CourseWorkflowService(ICourseStore store, IAuthStore auth, I
         if ((await store.LecturesAsync(courseId, ct)).Count == 0)
             throw new InvalidOperationException("At least one lecture is required before ending a course.");
         course.Status = CourseStatus.Ended; course.EndedAtUtc = DateTimeOffset.UtcNow;
-        await store.SaveAsync(ct); return course;
+        await store.SaveAsync(ct);
+        if (certificateService is not null)
+            await certificateService.ReevaluateCourseCertificatesAsync(course.Id, "https://portal.zu.edu.jo", ct);
+        return course;
     }
 
     public async Task<Exam> CreateExamAsync(Guid userId, Guid courseId, string nameAr, string? nameEn,
@@ -464,6 +474,8 @@ public sealed class CourseWorkflowService(ICourseStore store, IAuthStore auth, I
         }
         course.HasExam = required;
         await store.SaveAsync(ct);
+        if (certificateService is not null)
+            await certificateService.ReevaluateCourseCertificatesAsync(courseId, "https://portal.zu.edu.jo", ct);
         return course;
     }
 
@@ -487,7 +499,10 @@ public sealed class CourseWorkflowService(ICourseStore store, IAuthStore auth, I
             store.AddExamResult(result);
         }
         else { result.Outcome = outcome; result.RecordedByUserId = userId; }
-        await store.SaveAsync(ct); return result;
+        await store.SaveAsync(ct);
+        if (certificateService is not null)
+            await certificateService.IssueOrReevaluateCertificateAsync(courseId, enrollmentId, "https://portal.zu.edu.jo", ct);
+        return result;
     }
 
     private async Task<AttendanceRecord> SaveAttendanceAsync(Lecture lecture, CourseEnrollment enrollment,
