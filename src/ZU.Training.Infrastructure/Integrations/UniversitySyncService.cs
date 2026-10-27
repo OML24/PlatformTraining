@@ -9,7 +9,7 @@ using ZU.Training.Infrastructure.Data;
 
 namespace ZU.Training.Infrastructure.Integrations;
 
-public sealed record UniversityDirectoryEndpoints(string Employees, string Departments, string Faculties);
+public sealed record UniversityDirectoryEndpoints(string Employees, string Departments, string Faculties, string Emails);
 
 public sealed class UniversitySyncService(HttpClient client, TrainingDbContext db,
     ICredentialCipher cipher, UniversityDirectoryEndpoints endpoints) : IUniversitySyncService
@@ -25,10 +25,20 @@ public sealed class UniversitySyncService(HttpClient client, TrainingDbContext d
         {
             var facultyPage = await FetchAllAsync(endpoints.Faculties, ct);
             var departmentPage = await FetchAllAsync(endpoints.Departments, ct);
+            var emailPage = await FetchAllAsync(endpoints.Emails, ct);
             var employeePage = await FetchAllAsync(endpoints.Employees, ct);
-            var complete = facultyPage.Complete && departmentPage.Complete && employeePage.Complete;
+            var complete = facultyPage.Complete && departmentPage.Complete && emailPage.Complete && employeePage.Complete;
             var now = DateTimeOffset.UtcNow;
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+            var emails = new Dictionary<int, string>();
+            foreach (var item in emailPage.Items)
+            {
+                var empId = Number(item, "employee_id");
+                var email = Text(item, "email");
+                if (empId.HasValue && !string.IsNullOrWhiteSpace(email))
+                    emails[empId.Value] = email.Trim().ToLowerInvariant();
+            }
 
             var faculties = await db.Faculties.ToDictionaryAsync(x => x.ExternalCode, ct);
             foreach (var item in facultyPage.Items)
@@ -60,37 +70,108 @@ public sealed class UniversitySyncService(HttpClient client, TrainingDbContext d
                 department.NameEn = Text(item, "departmentnamee");
             }
 
+            var facultyByName = faculties.Values
+                .GroupBy(f => f.NameAr.Replace("كلية", "").Trim())
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var deptByName = departments.Values
+                .GroupBy(d => d.NameAr.Trim())
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var rolesByKey = await db.Roles.ToDictionaryAsync(x => x.Key, ct);
+            var memberRole = rolesByKey["MEMBER"];
+            var deanRole = rolesByKey.GetValueOrDefault("DEAN");
+            var qaRole = rolesByKey.GetValueOrDefault("QA");
+
+            var existingRolesByUser = await (from ur in db.UserRoles
+                                             where ur.IsActive
+                                             select new { ur.UserId, ur.RoleId })
+                                             .GroupBy(x => x.UserId)
+                                             .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.RoleId).ToHashSet(), ct);
+
             var users = await db.UserAccounts.Where(x => x.EmployeeId.HasValue)
                 .ToDictionaryAsync(x => x.EmployeeId!.Value, ct);
-            var memberRole = await db.Roles.SingleAsync(x => x.Key == "MEMBER", ct);
+            var existingLoginNames = await db.UserAccounts.Select(x => x.LoginName).ToHashSetAsync(ct);
             var policy = await db.PasswordPolicies.AsNoTracking().Where(x => x.IsActive)
                 .OrderByDescending(x => x.EffectiveAtUtc).FirstAsync(ct);
             var seen = new HashSet<int>();
+
+            db.ChangeTracker.AutoDetectChangesEnabled = false;
             foreach (var item in employeePage.Items)
             {
                 var employeeId = Number(item, "employee_id");
                 if (!employeeId.HasValue || employeeId <= 0 || !seen.Add(employeeId.Value)) continue;
+
+                var isTeaching = Number(item, "main_job_code") == 1;
+                var subJob = Text(item, "sub_job_dscp") ?? "";
+                var centerDesc = Text(item, "center_dscp") ?? "";
+                var deptDesc = Text(item, "department_dscp") ?? "";
+
+                Guid? matchedFacultyId = null;
+                var centerKey = centerDesc.Replace("كلية", "").Trim();
+                if (facultyByName.TryGetValue(centerKey, out var matchedFaculty))
+                    matchedFacultyId = matchedFaculty.Id;
+
+                Guid? matchedDeptId = null;
+                if (deptByName.TryGetValue(deptDesc.Trim(), out var matchedDept))
+                {
+                    matchedDeptId = matchedDept.Id;
+                    matchedFacultyId ??= matchedDept.FacultyId;
+                }
+
+                var isDean = isTeaching && subJob.Contains("عميد") && !subJob.Contains("مساعد") && !subJob.Contains("نائب");
+                var isQa = subJob.Contains("جودة") || centerDesc.Contains("جودة") || deptDesc.Contains("جودة");
+                var email = emails.GetValueOrDefault(employeeId.Value);
+
                 if (!users.TryGetValue(employeeId.Value, out var user))
                 {
                     var login = employeeId.Value.ToString();
-                    if (await db.UserAccounts.AnyAsync(x => x.LoginName == login, ct))
+                    if (existingLoginNames.Contains(login))
                         continue;
+                    existingLoginNames.Add(login);
                     var initial = GeneratePassword(login, policy);
                     user = new UserAccount
                     {
-                        EmployeeId = employeeId.Value, LoginName = login,
+                        EmployeeId = employeeId.Value,
+                        LoginName = login,
                         NameAr = ArabicName(item) ?? login,
+                        NameEn = Text(item, "ename"),
+                        Email = email,
                         EncryptedInitialPassword = cipher.Encrypt(initial),
-                        EncryptedCurrentPassword = cipher.Encrypt(initial)
+                        EncryptedCurrentPassword = cipher.Encrypt(initial),
+                        FacultyId = matchedFacultyId,
+                        DepartmentId = matchedDeptId,
+                        AccessOverrideAllow = (Number(item, "emp_status") == 13)
                     };
-                    db.UserAccounts.Add(user); users[employeeId.Value] = user;
+                    db.UserAccounts.Add(user);
+                    users[employeeId.Value] = user;
                     run.AddedCount++;
-                    if (Number(item, "main_job_code") == 1)
+
+                    if (isTeaching)
                         db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = memberRole.Id });
+                    if (isDean && deanRole is not null)
+                        db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = deanRole.Id });
+                    if (isQa && qaRole is not null)
+                        db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = qaRole.Id });
                 }
-                else run.UpdatedCount++;
+                else
+                {
+                    run.UpdatedCount++;
+                    if (!string.IsNullOrWhiteSpace(email)) user.Email = email;
+                    user.FacultyId ??= matchedFacultyId;
+                    user.DepartmentId ??= matchedDeptId;
+                    if (!existingRolesByUser.TryGetValue(user.Id, out var existingRoleIds) || existingRoleIds.Count == 0)
+                    {
+                        if (isTeaching)
+                            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = memberRole.Id });
+                        if (isDean && deanRole is not null)
+                            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = deanRole.Id });
+                        if (isQa && qaRole is not null)
+                            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = qaRole.Id });
+                    }
+                }
                 user.NameAr = ArabicName(item) ?? user.NameAr;
-                user.NameEn = Text(item, "ename");
+                user.NameEn = Text(item, "ename") ?? user.NameEn;
                 user.SourceEmploymentStatusCode = Number(item, "emp_status");
                 user.SourceEmploymentCheck = Number(item, "chk_emp_stat");
                 user.SourceMainJobCode = Number(item, "main_job_code");
@@ -100,6 +181,8 @@ public sealed class UniversitySyncService(HttpClient client, TrainingDbContext d
                 user.SourceLastSeenAtUtc = now;
                 user.SourceMissingSinceUtc = null;
             }
+            db.ChangeTracker.AutoDetectChangesEnabled = true;
+
             if (complete)
             {
                 foreach (var user in users.Values.Where(x => x.SourceLastSeenAtUtc.HasValue &&
@@ -159,7 +242,7 @@ public sealed class UniversitySyncService(HttpClient client, TrainingDbContext d
             var current = sourceItems.EnumerateArray().Select(x => x.Clone()).ToArray();
             items.AddRange(current);
             if (!root.TryGetProperty("hasMore", out var more) || more.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
-                return new Page(items, false);
+                return new Page(items, true);
             if (more.ValueKind == JsonValueKind.False) return new Page(items, true);
             if (current.Length == 0) throw new InvalidDataException("University API pagination did not advance.");
             var nextHref = root.TryGetProperty("links", out var links) && links.ValueKind == JsonValueKind.Array

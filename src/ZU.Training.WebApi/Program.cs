@@ -58,9 +58,10 @@ builder.Services.AddScoped<UserAdminService>();
 builder.Services.AddSingleton(new UniversityDirectoryEndpoints(
     builder.Configuration["University:Employees"] ?? throw new InvalidOperationException("University employee URL missing."),
     builder.Configuration["University:Departments"] ?? throw new InvalidOperationException("University department URL missing."),
-    builder.Configuration["University:Faculties"] ?? throw new InvalidOperationException("University faculty URL missing.")));
+    builder.Configuration["University:Faculties"] ?? throw new InvalidOperationException("University faculty URL missing."),
+    builder.Configuration["University:Emails"] ?? "https://eservices.zu.edu.jo/ords/fees/qa/email"));
 builder.Services.AddHttpClient<IUniversitySyncService, UniversitySyncService>(client =>
-    client.Timeout = TimeSpan.FromSeconds(30));
+    client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddSingleton<ICertificateTemplateStorage>(new CertificateTemplateStorage(
     builder.Configuration["Storage:CertificateTemplatesPath"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "storage", "certificate-templates")));
